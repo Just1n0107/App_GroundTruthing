@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   FlatList,
-  Image,
   Modal,
   Pressable,
   StyleSheet,
@@ -11,6 +10,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
+import { PlantPhoto } from "@/components/PlantPhoto";
 import { Button, Field, Notice } from "@/components/ui";
 import { listSpecies } from "@/lib/db";
 import { copyPhotoIntoApp } from "@/lib/photos";
@@ -159,7 +159,7 @@ export function RecordForm({
       <Field label="Other traits" value={input.other_traits} onChangeText={(other_traits) => patch({ other_traits })} multiline />
       {input.photo_uri ? (
         <View style={styles.photoBlock}>
-          <Image source={{ uri: input.photo_uri }} style={styles.photo} />
+          <PlantPhoto photo={{ storage_path: input.photo_uri, caption: null }} showCaption={false} />
           <Field label="Photo caption" value={input.photo_caption} onChangeText={(photo_caption) => patch({ photo_caption })} />
           <Button label="Remove photograph" tone="secondary" onPress={() => patch({ photo_uri: null })} />
         </View>
@@ -265,7 +265,6 @@ const styles = StyleSheet.create({
   pickerValue: { color: colors.ink, fontSize: 16, marginTop: 2 },
   accuracy: { color: colors.muted, fontSize: 13 },
   photoBlock: { gap: 10 },
-  photo: { width: "100%", height: 220, borderRadius: 16, backgroundColor: colors.sand },
   modal: { flex: 1, backgroundColor: colors.paper, padding: 16, gap: 10 },
   modalTitle: { fontSize: 24, fontWeight: "700", color: colors.ink, marginTop: 24 },
   search: {

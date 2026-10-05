@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { isDisplayablePhoto, speciesPhoto, storageObjectPath } from "../src/lib/photo-path.ts";
 import {
   fieldProblems,
   numberOrNull,
@@ -46,6 +47,60 @@ assert.deepEqual(
     status: "submitted",
   }),
   ["Height must be a number.", "Longitude must be a number."],
+);
+
+const officerFolder = "73936c08-fe42-44d2-a23b-c71fe6f6da9b";
+const newest = `${officerFolder}/494261d6-2d95-4336-99de-aaf1eb9b0516.png`;
+const older = `${officerFolder}/b8354b72-5a6a-48e2-b627-f8c095318774.png`;
+const publicUrl = `https://example.supabase.co/storage/v1/object/public/plant-photos/${older}`;
+
+assert.equal(storageObjectPath(`${officerFolder}/leaf.png`), `${officerFolder}/leaf.png`);
+assert.equal(storageObjectPath(publicUrl), older);
+assert.equal(
+  storageObjectPath(`https://example.supabase.co/storage/v1/object/sign/plant-photos/${older}?token=abc`),
+  older,
+);
+assert.equal(storageObjectPath("file:///phone/photo.jpg"), null);
+assert.equal(isDisplayablePhoto("https://daftlimmy.itch.io/67"), false);
+assert.equal(isDisplayablePhoto("https://example.com/leaf.png"), true);
+assert.equal(isDisplayablePhoto("file:///phone/photo.jpg"), true);
+
+assert.deepEqual(
+  speciesPhoto([
+    { storage_path: "file:///cache/page.jpg", caption: "67kid" },
+    { storage_path: "https://daftlimmy.itch.io/67", caption: "67kid" },
+    { storage_path: older, caption: null },
+    { storage_path: newest, caption: null },
+  ]),
+  { storage_path: newest, caption: "67kid" },
+);
+
+assert.deepEqual(
+  speciesPhoto(
+    [
+      { storage_path: `${officerFolder}/older.jpg`, caption: "first" },
+      { storage_path: `${officerFolder}/newer.jpg`, caption: "second" },
+      { storage_path: `${officerFolder}/plain.png`, caption: null },
+    ],
+    (path) => (path.endsWith("newer.jpg") ? "2026-10-04T07:14:39.321Z" : "2026-10-04T07:11:41.572Z"),
+  ),
+  { storage_path: `${officerFolder}/newer.jpg`, caption: "second" },
+);
+
+assert.deepEqual(speciesPhoto([{ storage_path: "file:///phone/photo.jpg", caption: "On the phone" }]), {
+  storage_path: "file:///phone/photo.jpg",
+  caption: "On the phone",
+});
+
+assert.deepEqual(
+  speciesPhoto(
+    [
+      { storage_path: `${officerFolder}/older.jpg`, caption: "kept on the older photo" },
+      { storage_path: `${officerFolder}/newer.jpg`, caption: null },
+    ],
+    (path) => (path.endsWith("newer.jpg") ? "2026-10-05T02:35:20.828Z" : "2026-10-04T07:10:44.103Z"),
+  ),
+  { storage_path: `${officerFolder}/newer.jpg`, caption: null },
 );
 
 console.log("plant helpers ok");

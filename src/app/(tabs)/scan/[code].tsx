@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { Image } from "expo-image";
+import { StyleSheet, Text } from "react-native";
+import { PlantPhoto } from "@/components/PlantPhoto";
 import { Button, Fact, Loading, Notice, Screen } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { firstParam } from "@/lib/plant";
@@ -72,10 +72,7 @@ export default function TaggedPlantScreen() {
       <Fact label="Cultural significance" value={plant.cultural_significance} />
       <Fact label="Health of this plant" value={plant.health_status} />
       {hit.photos.map((photo, index) => (
-        <View key={`${photo.storage_path}-${index}`} style={styles.photoBlock}>
-          <Image source={{ uri: photo.storage_path }} style={styles.photo} contentFit="cover" />
-          {photo.caption ? <Text style={styles.meta}>{photo.caption}</Text> : null}
-        </View>
+        <PlantPhoto key={`${photo.storage_path}-${index}`} photo={photo} />
       ))}
     </Screen>
   );
@@ -85,6 +82,4 @@ const styles = StyleSheet.create({
   rank: { color: colors.leaf, fontWeight: "700" },
   name: { fontSize: 28, fontWeight: "700", color: colors.ink },
   meta: { color: colors.muted, fontSize: 15 },
-  photoBlock: { gap: 6 },
-  photo: { width: "100%", height: 220, borderRadius: 16, backgroundColor: colors.sand },
 });

@@ -7,7 +7,8 @@ import {
   replaceSpecies,
   saveDraft,
 } from "@/lib/db";
-import { cachePhotoFiles, deleteLocalPhoto, uploadPlantPhoto } from "@/lib/photos";
+import { speciesPhoto, storageObjectPath } from "@/lib/photo-path";
+import { cachePhotoFiles, deleteLocalPhoto, photoTimestamps, uploadPlantPhoto } from "@/lib/photos";
 import { numberOrNull, textOrNull } from "@/lib/plant";
 import { supabase } from "@/lib/supabase";
 import type { CachedRecord, Draft, PhotoRef, Profile, PublicPlant, Species } from "@/types";
@@ -192,24 +193,25 @@ export async function refreshReferenceData(profile: Profile) {
 
   if (speciesResult.error) return speciesResult.error.message;
 
-  const speciesPhotos = await supabase
-    .from("plant_photos")
-    .select("species_id, storage_path, caption")
-    .not("species_id", "is", null);
+  const speciesPhotos = await supabase.from("public_species_photos").select("species_id, storage_path, caption");
 
   const photosBySpecies = new Map<string, PhotoRef[]>();
   if (!speciesPhotos.error) {
     for (const photo of (speciesPhotos.data ?? []) as PhotoApi[]) {
-      if (!photo.species_id) continue;
+      if (!photo.species_id || !photo.storage_path) continue;
       const list = photosBySpecies.get(photo.species_id) ?? [];
       list.push({ storage_path: photo.storage_path, caption: photo.caption });
       photosBySpecies.set(photo.species_id, list);
     }
   }
 
+  const uploadedAt = speciesPhotos.error ? new Map<string, string>() : await photoTimestamps();
   const species: Species[] = [];
   for (const item of (speciesResult.data ?? []) as SpeciesApi[]) {
-    const photos = await cachePhotoFiles(photosBySpecies.get(item.uuid) ?? []);
+    const chosen = speciesPhoto(photosBySpecies.get(item.uuid) ?? [], (path) => {
+      const objectPath = storageObjectPath(path);
+      return (objectPath && uploadedAt.get(objectPath)) || null;
+    });
     species.push({
       uuid: item.uuid,
       code: item.id,
@@ -223,10 +225,11 @@ export async function refreshReferenceData(profile: Profile) {
       distribution: item.distribution,
       ecological_info: item.ecological_info,
       cultural_significance: item.cultural_significance,
-      photos,
+      photos: chosen ? [chosen] : [],
     });
   }
   await replaceSpecies(species);
+  await cachePhotoFiles(species.flatMap((item) => item.photos));
 
   if (profile.role !== "botanist") return null;
 
@@ -332,7 +335,7 @@ export async function lookupTag(code: string, online: boolean): Promise<TagHit> 
           cultural_significance: textField(row, "cultural_significance"),
           health_status: textField(row, "health_status"),
         },
-        photos: photos.error ? [] : ((photos.data ?? []) as PhotoRef[]),
+        photos: photos.error ? [] : await cachePhotoFiles((photos.data ?? []) as PhotoRef[]),
       };
     }
   }

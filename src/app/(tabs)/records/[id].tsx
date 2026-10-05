@@ -1,8 +1,8 @@
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
 import { Linking, StyleSheet, Text, View } from "react-native";
-import { Image } from "expo-image";
 import QRCode from "react-native-qrcode-svg";
+import { PlantPhoto } from "@/components/PlantPhoto";
 import { Badge, Button, Fact, Notice, Screen } from "@/components/ui";
 import { RecordForm } from "@/components/RecordForm";
 import { getRecord } from "@/lib/db";
@@ -124,10 +124,7 @@ export default function RecordDetailScreen() {
       )}
 
       {record.photos.map((photo, index) => (
-        <View key={`${photo.storage_path}-${index}`} style={styles.photoBlock}>
-          <Image source={{ uri: photo.storage_path }} style={styles.photo} contentFit="cover" />
-          {photo.caption ? <Text style={styles.meta}>{photo.caption}</Text> : null}
-        </View>
+        <PlantPhoto key={`${photo.storage_path}-${index}`} photo={photo} />
       ))}
 
       {record.status === "approved" && !record.qr_code && profile.role === "botanist" && (
@@ -178,7 +175,5 @@ const styles = StyleSheet.create({
   name: { fontSize: 28, fontWeight: "700", color: colors.ink },
   meta: { color: colors.muted, fontSize: 14 },
   facts: { gap: 10 },
-  photoBlock: { gap: 6 },
-  photo: { width: "100%", height: 220, borderRadius: 16, backgroundColor: colors.sand },
   qr: { alignItems: "flex-start", gap: 8, backgroundColor: "#fff", padding: 12, borderRadius: 16 },
 });

@@ -1,9 +1,11 @@
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { Image } from "expo-image";
+import { StyleSheet, Text } from "react-native";
+import { PlantPhoto } from "@/components/PlantPhoto";
 import { Fact, Notice, Screen } from "@/components/ui";
+import { useAuth } from "@/lib/auth";
 import { getSpecies } from "@/lib/db";
+import { speciesPhoto } from "@/lib/photo-path";
 import { firstParam } from "@/lib/plant";
 import { colors } from "@/theme";
 import type { Species } from "@/types";
@@ -11,15 +13,21 @@ import type { Species } from "@/types";
 export default function SpeciesDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const speciesId = firstParam(id);
+  const { version } = useAuth();
   const [species, setSpecies] = useState<Species | null>(null);
   const [missing, setMissing] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     getSpecies(speciesId).then((row) => {
+      if (cancelled) return;
       setSpecies(row);
       setMissing(!row);
     });
-  }, [speciesId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [speciesId, version]);
 
   if (missing) {
     return (
@@ -31,6 +39,7 @@ export default function SpeciesDetailScreen() {
   if (!species) return null;
 
   const names = [species.common_name, species.local_name].filter(Boolean).join(" · ");
+  const photo = speciesPhoto(species.photos);
 
   return (
     <Screen>
@@ -43,12 +52,7 @@ export default function SpeciesDetailScreen() {
       <Fact label="Description" value={species.description} />
       <Fact label="Ecology" value={species.ecological_info} />
       <Fact label="Cultural significance" value={species.cultural_significance} />
-      {species.photos.map((photo, index) => (
-        <View key={`${photo.storage_path}-${index}`} style={styles.photoBlock}>
-          <Image source={{ uri: photo.storage_path }} style={styles.photo} contentFit="cover" />
-          {photo.caption ? <Text style={styles.meta}>{photo.caption}</Text> : null}
-        </View>
-      ))}
+      {photo ? <PlantPhoto photo={photo} /> : null}
     </Screen>
   );
 }
@@ -57,6 +61,4 @@ const styles = StyleSheet.create({
   rank: { color: colors.leaf, fontWeight: "700" },
   name: { fontSize: 28, fontWeight: "700", color: colors.ink },
   meta: { color: colors.muted, fontSize: 15 },
-  photoBlock: { gap: 6 },
-  photo: { width: "100%", height: 220, borderRadius: 16, backgroundColor: colors.sand },
 });
