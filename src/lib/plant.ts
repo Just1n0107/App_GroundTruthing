@@ -85,6 +85,10 @@ export function statusLabel(status: string) {
       return "Approved";
     case "rejected":
       return "Rejected";
+    case "published":
+      return "Published";
+    case "cancelled":
+      return "Cancelled";
     default:
       return status;
   }

@@ -1,21 +1,29 @@
 import { Tabs } from "expo-router";
-import { colors } from "@/theme";
+import { usePreferences } from "@/lib/preferences";
 
 export default function TabLayout() {
+  const { palette, t } = usePreferences();
   return (
     <Tabs
+      initialRouteName="field"
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.forest,
-        tabBarInactiveTintColor: colors.muted,
-        tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.line },
+        tabBarActiveTintColor: palette.forest,
+        tabBarInactiveTintColor: palette.muted,
+        tabBarStyle: {
+          backgroundColor: palette.tab,
+          borderTopColor: "transparent",
+          elevation: 0,
+        },
         tabBarLabelStyle: { fontSize: 12, fontWeight: "600" },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: "Field" }} />
-      <Tabs.Screen name="records" options={{ title: "Records" }} />
-      <Tabs.Screen name="species" options={{ title: "Species" }} />
-      <Tabs.Screen name="scan" options={{ title: "Scan" }} />
+      <Tabs.Screen name="field" options={{ title: t.field }} />
+      <Tabs.Screen name="records" options={{ title: t.recordsTab }} />
+      <Tabs.Screen name="species" options={{ title: t.speciesTab }} />
+      <Tabs.Screen name="scan" options={{ title: t.scanTab }} />
+      <Tabs.Screen name="events" options={{ href: null }} />
+      <Tabs.Screen name="settings" options={{ href: null }} />
     </Tabs>
   );
 }

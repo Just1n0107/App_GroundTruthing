@@ -8,6 +8,7 @@ import { pendingCount, refreshReferenceData, syncDrafts } from "@/lib/sync";
 import type { Profile } from "@/types";
 
 const PROFILE_KEY = "plant-records-profile";
+const KEEP_SIGNED_IN_KEY = "plant-records-stay-signed-in";
 
 type AuthValue = {
   ready: boolean;
@@ -42,16 +43,28 @@ async function fetchProfile(userId: string) {
   return (data as Profile | null) ?? null;
 }
 
-async function readCachedProfile(userId: string) {
+async function readCachedProfile(userId?: string) {
   const raw = await AsyncStorage.getItem(PROFILE_KEY);
   if (!raw) return null;
   try {
     const profile = JSON.parse(raw) as Profile;
-    if (profile.uuid !== userId || profile.status !== "active") return null;
+    if (profile.status !== "active") return null;
+    if (userId && profile.uuid !== userId) return null;
     return profile;
   } catch {
     return null;
   }
+}
+
+async function readKeptProfile() {
+  const keep = await AsyncStorage.getItem(KEEP_SIGNED_IN_KEY);
+  if (keep !== "1") return null;
+  return readCachedProfile();
+}
+
+async function rememberProfile(profile: Profile) {
+  await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  await AsyncStorage.setItem(KEEP_SIGNED_IN_KEY, "1");
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -104,45 +117,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    async function boot() {
-      await initDb();
-      const { data } = await supabase.auth.getSession();
-      const sessionUser = data.session?.user;
-      if (!sessionUser) {
-        if (!cancelled) setReady(true);
-        return;
-      }
+
+    async function restore(userId: string | undefined) {
       try {
-        const fresh = await fetchProfile(sessionUser.id);
-        if (cancelled) return;
-        if (!fresh || fresh.status !== "active") {
-          await supabase.auth.signOut();
-          await AsyncStorage.removeItem(PROFILE_KEY);
-          setBootMessage(fresh ? "This account is suspended." : "This login has no profile row. An administrator must add one.");
-        } else {
-          await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(fresh));
-          setProfile(fresh);
-          await refreshPending(fresh.uuid);
+        await initDb();
+        if (!userId) {
+          const kept = await readKeptProfile();
+          if (cancelled) return;
+          if (kept) {
+            setProfile(kept);
+            await refreshPending(kept.uuid);
+            setNotice("Working from the copy saved on this phone.");
+          }
+          return;
+        }
+
+        try {
+          const fresh = await fetchProfile(userId);
+          if (cancelled) return;
+          if (!fresh || fresh.status !== "active") {
+            await supabase.auth.signOut();
+            await AsyncStorage.multiRemove([PROFILE_KEY, KEEP_SIGNED_IN_KEY]);
+            setProfile(null);
+            setBootMessage(fresh ? "This account is suspended." : "This login has no profile row. An administrator must add one.");
+          } else {
+            await rememberProfile(fresh);
+            setProfile(fresh);
+            await refreshPending(fresh.uuid);
+          }
+        } catch {
+          const cached = await readCachedProfile(userId);
+          if (cancelled) return;
+          if (cached) {
+            setProfile(cached);
+            await refreshPending(cached.uuid);
+            setNotice("Working from the copy saved on this phone.");
+          } else {
+            setBootMessage("Could not confirm this account. Connect and sign in again.");
+          }
         }
       } catch {
-        const cached = await readCachedProfile(sessionUser.id);
-        if (cancelled) return;
-        if (cached) {
-          setProfile(cached);
-          await refreshPending(cached.uuid);
-          setNotice("Working from the copy saved on this phone.");
-        } else {
-          setBootMessage("Could not confirm this account. Connect and sign in again.");
-        }
+        if (!cancelled) setBootMessage("The field book could not open its local database.");
+      } finally {
+        if (!cancelled) setReady(true);
       }
-      if (!cancelled) setReady(true);
     }
-    boot().catch(() => {
-      if (!cancelled) {
-        setBootMessage("The field book could not open its local database.");
-        setReady(true);
-      }
-    });
+
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!cancelled) return restore(data.session?.user?.id);
+      })
+      .catch(() => {
+        if (!cancelled) return restore(undefined);
+      });
+
     return () => {
       cancelled = true;
     };
@@ -158,12 +187,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (cancelled) return;
         if (!fresh || fresh.status !== "active") {
           await supabase.auth.signOut();
-          await AsyncStorage.removeItem(PROFILE_KEY);
+          await AsyncStorage.multiRemove([PROFILE_KEY, KEEP_SIGNED_IN_KEY]);
           setProfile(null);
           setBootMessage(fresh ? "This account is suspended." : "This login has no profile row. An administrator must add one.");
           return;
         }
-        await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(fresh));
+        await rememberProfile(fresh);
         setProfile(fresh);
         await syncField(fresh, true);
       })
@@ -208,7 +237,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return "Botanists sign in with the ID issued by the administrator, not an email.";
       }
 
-      await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(next));
+      await rememberProfile(next);
       await supabase.from("login_logs").insert({ user_id: user.id, success: true });
       setProfile(next);
       setBootMessage(null);
@@ -220,7 +249,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
-    await AsyncStorage.removeItem(PROFILE_KEY);
+    await AsyncStorage.multiRemove([PROFILE_KEY, KEEP_SIGNED_IN_KEY]);
     setProfile(null);
     setNotice(null);
     setPending(0);

@@ -2,7 +2,7 @@ import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
 import { Linking, StyleSheet, Text, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
-import { PlantPhoto } from "@/components/PlantPhoto";
+import { PhotoGallery } from "@/components/PhotoGallery";
 import { Badge, Button, Fact, Notice, Screen } from "@/components/ui";
 import { RecordForm } from "@/components/RecordForm";
 import { getRecord } from "@/lib/db";
@@ -123,9 +123,7 @@ export default function RecordDetailScreen() {
         />
       )}
 
-      {record.photos.map((photo, index) => (
-        <PlantPhoto key={`${photo.storage_path}-${index}`} photo={photo} />
-      ))}
+      <PhotoGallery photos={record.photos} />
 
       {record.status === "approved" && !record.qr_code && profile.role === "botanist" && (
         <Button

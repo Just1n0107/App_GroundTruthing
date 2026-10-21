@@ -39,8 +39,7 @@ export async function uploadPlantPhoto(userId: string, localId: string, uri: str
       upsert: true,
     });
     if (error) return { url: null, error: photoError(error.message) };
-    const { data } = supabase.storage.from(photoBucket).getPublicUrl(path);
-    return { url: data.publicUrl, error: null };
+    return { url: path, error: null };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not read the photograph.";
     return { url: null, error: photoError(message) };

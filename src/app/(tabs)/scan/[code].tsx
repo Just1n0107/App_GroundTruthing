@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text } from "react-native";
-import { PlantPhoto } from "@/components/PlantPhoto";
+import { PhotoGallery } from "@/components/PhotoGallery";
 import { Button, Fact, Loading, Notice, Screen } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { firstParam } from "@/lib/plant";
@@ -71,9 +71,7 @@ export default function TaggedPlantScreen() {
       <Fact label="Ecology" value={plant.ecological_info} />
       <Fact label="Cultural significance" value={plant.cultural_significance} />
       <Fact label="Health of this plant" value={plant.health_status} />
-      {hit.photos.map((photo, index) => (
-        <PlantPhoto key={`${photo.storage_path}-${index}`} photo={photo} />
-      ))}
+      <PhotoGallery photos={hit.photos} />
     </Screen>
   );
 }

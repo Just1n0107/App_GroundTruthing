@@ -1,15 +1,20 @@
-import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { router } from "expo-router";
+import { useEffect, useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Button, Field, Notice, Screen, Title } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { colors } from "@/theme";
 
 export default function LoginScreen() {
-  const { signIn, bootMessage } = useAuth();
+  const { profile, signIn, bootMessage } = useAuth();
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (profile) router.replace("/field");
+  }, [profile]);
 
   async function submit() {
     setBusy(true);
@@ -21,6 +26,9 @@ export default function LoginScreen() {
 
   return (
     <Screen edges={["top", "bottom"]}>
+      <Pressable accessibilityRole="button" onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))}>
+        <Text style={styles.back}>Back</Text>
+      </Pressable>
       <View style={styles.mark}>
         <Text style={styles.markText}>Niah</Text>
       </View>
@@ -38,6 +46,7 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  back: { color: colors.forest, fontWeight: "700", fontSize: 16 },
   mark: {
     width: 64,
     height: 64,

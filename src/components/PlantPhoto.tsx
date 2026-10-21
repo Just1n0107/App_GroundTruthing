@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
+import { usePreferences } from "@/lib/preferences";
 import { displayUri } from "@/lib/photos";
-import { colors } from "@/theme";
 import type { PhotoRef } from "@/types";
 
 function isLocalUri(uri: string) {
@@ -16,7 +16,20 @@ function pendingPhoto(path: string): ResolvedPhoto {
   return { path, uri: null, failed: false };
 }
 
-export function PlantPhoto({ photo, showCaption = true }: { photo: PhotoRef; showCaption?: boolean }) {
+export function PlantPhoto({
+  photo,
+  showCaption = true,
+  width,
+  height = 220,
+  radius = 16,
+}: {
+  photo: PhotoRef;
+  showCaption?: boolean;
+  width?: number;
+  height?: number;
+  radius?: number;
+}) {
+  const { palette } = usePreferences();
   const [resolved, setResolved] = useState<ResolvedPhoto | null>(null);
   const retrying = useRef(false);
   const view = resolved?.path === photo.storage_path ? resolved : pendingPhoto(photo.storage_path);
@@ -40,13 +53,21 @@ export function PlantPhoto({ photo, showCaption = true }: { photo: PhotoRef; sho
 
   const caption = showCaption ? photo.caption?.trim() : "";
 
+  const frame = {
+    width: width ?? ("100%" as const),
+    height,
+    borderRadius: radius,
+    backgroundColor: palette.sand,
+    overflow: "hidden" as const,
+  };
+
   return (
-    <View style={styles.block}>
+    <View style={[styles.block, width != null && styles.fixed]}>
       {view.uri ? (
         <Image
           key={view.uri}
           source={{ uri: view.uri }}
-          style={styles.photo}
+          style={frame}
           contentFit="cover"
           onError={() => {
             if (isLocalUri(photo.storage_path) || retrying.current) {
@@ -63,25 +84,18 @@ export function PlantPhoto({ photo, showCaption = true }: { photo: PhotoRef; sho
           }}
         />
       ) : (
-        <View style={styles.photo}>
-          <ActivityIndicator color={colors.forest} />
+        <View style={[frame, styles.pending]}>
+          <ActivityIndicator color={palette.forest} />
         </View>
       )}
-      {caption ? <Text style={styles.caption}>{caption}</Text> : null}
+      {caption ? <Text style={[styles.caption, { color: palette.muted }]}>{caption}</Text> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   block: { gap: 6 },
-  caption: { color: colors.muted, fontSize: 15 },
-  photo: {
-    width: "100%",
-    height: 220,
-    borderRadius: 16,
-    backgroundColor: colors.sand,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
+  fixed: { alignSelf: "flex-start" },
+  caption: { fontSize: 15 },
+  pending: { alignItems: "center", justifyContent: "center", overflow: "hidden" },
 });
