@@ -44,6 +44,8 @@ type RecordApi = {
   uuid: string;
   id: string | null;
   species_id: string | null;
+  plant_name: string | null;
+  life_stage: string | null;
   status: string;
   location_name: string | null;
   latitude: number | null;
@@ -74,6 +76,8 @@ function recordPayload(draft: Draft) {
   return {
     botanist_id: draft.user_id,
     local_id: draft.local_id,
+    plant_name: textOrNull(draft.plant_name),
+    life_stage: textOrNull(draft.life_stage),
     species_id: draft.species_id,
     height_m: numberOrNull(draft.height_m),
     trunk_diameter_cm: numberOrNull(draft.trunk_diameter_cm),
@@ -236,7 +240,7 @@ export async function refreshReferenceData(profile: Profile) {
   const recordsResult = await supabase
     .from("plant_records")
     .select(
-      "uuid, id, species_id, status, location_name, latitude, longitude, height_m, trunk_diameter_cm, leaf_traits, flower_fruit_traits, health_status, other_traits, qr_code, review_note, recorded_at, species(scientific_name, common_name)",
+      "uuid, id, plant_name, life_stage, species_id, status, location_name, latitude, longitude, height_m, trunk_diameter_cm, leaf_traits, flower_fruit_traits, health_status, other_traits, qr_code, review_note, recorded_at, species(scientific_name, common_name)",
     )
     .eq("botanist_id", profile.uuid)
     .order("recorded_at", { ascending: false });
@@ -272,6 +276,8 @@ export async function refreshReferenceData(profile: Profile) {
       species_id: row.species_id,
       species_name: species?.scientific_name ?? null,
       common_name: species?.common_name ?? null,
+      plant_name: row.plant_name,
+      life_stage: row.life_stage,
       status: row.status,
       location_name: row.location_name,
       latitude: row.latitude,
@@ -348,7 +354,7 @@ export async function lookupTag(code: string, online: boolean): Promise<TagHit> 
   const remote = await supabase
     .from("plant_records")
     .select(
-      "uuid, id, species_id, status, location_name, latitude, longitude, height_m, trunk_diameter_cm, leaf_traits, flower_fruit_traits, health_status, other_traits, qr_code, review_note, recorded_at, species(scientific_name, common_name)",
+      "uuid, id, plant_name, life_stage, species_id, status, location_name, latitude, longitude, height_m, trunk_diameter_cm, leaf_traits, flower_fruit_traits, health_status, other_traits, qr_code, review_note, recorded_at, species(scientific_name, common_name)",
     )
     .eq("qr_code", code)
     .maybeSingle();
@@ -364,6 +370,8 @@ export async function lookupTag(code: string, online: boolean): Promise<TagHit> 
         species_id: row.species_id,
         species_name: species?.scientific_name ?? null,
         common_name: species?.common_name ?? null,
+        plant_name: row.plant_name,
+        life_stage: row.life_stage,
         status: row.status,
         location_name: row.location_name,
         latitude: row.latitude,

@@ -91,13 +91,14 @@ export default function GuestHome() {
         </View>
         <Pressable
           accessibilityRole="button"
-          style={styles.login}
+          style={({ pressed }) => [styles.login, pressed && styles.loginPressed]}
           onPress={() => router.push(profile ? "/field" : "/login")}
         >
           <Text style={styles.loginText}>{profile ? "Field book" : "Log in"}</Text>
         </Pressable>
       </View>
       <FlatList
+        key="plant-grid"
         data={plants}
         numColumns={2}
         columnWrapperStyle={styles.gridRow}
@@ -134,11 +135,19 @@ export default function GuestHome() {
                 returnKeyType="search"
                 style={styles.input}
               />
-              <Pressable accessibilityRole="button" style={styles.searchButton} onPress={search}>
+              <Pressable
+                accessibilityRole="button"
+                style={({ pressed }) => [styles.searchButton, pressed && styles.searchButtonPressed]}
+                onPress={search}
+              >
                 <Text style={styles.searchButtonText}>Search</Text>
               </Pressable>
             </View>
-            <Pressable accessibilityRole="button" style={styles.scanButton} onPress={() => router.push("/tag")}>
+            <Pressable
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.scanButton, pressed && styles.scanButtonPressed]}
+              onPress={() => router.push("/tag")}
+            >
               <Text style={styles.scanButtonText}>Scan QR</Text>
             </Pressable>
             {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -193,20 +202,25 @@ function PlantTile({ plant, size }: { plant: PublicPlantCard; size: number }) {
   return (
     <Pressable
       accessibilityRole="button"
-      style={[styles.tile, { width: size, height: size }]}
+      style={({ pressed }) => [styles.tile, { width: size, height: size }, pressed && styles.tilePressed]}
       onPress={() => router.push({ pathname: "/p/[code]", params: { code: plant.qr_code } })}
     >
-      {uri ? <Image source={{ uri }} style={styles.tilePhoto} contentFit="cover" /> : null}
-      {uri ? <View style={styles.tileScrim} /> : null}
-      <Text style={[styles.cardStatus, uri ? styles.onPhotoMuted : null]} numberOfLines={1}>
-        {plant.conservation_status || "Plant"}
-      </Text>
-      <Text style={[styles.cardTitle, uri ? styles.onPhoto : null]} numberOfLines={3}>
-        {plantTitle(plant)}
-      </Text>
-      <Text style={[styles.cardMeta, uri ? styles.onPhotoMuted : null]} numberOfLines={2}>
-        {subtitle || "No common name"}
-      </Text>
+      {({ pressed }) => (
+        <>
+          {uri ? <Image source={{ uri }} style={styles.tilePhoto} contentFit="cover" /> : null}
+          {uri ? <View style={styles.tileScrim} /> : null}
+          {pressed ? <View style={styles.tilePress} /> : null}
+          <Text style={[styles.cardStatus, uri ? styles.onPhotoMuted : null]} numberOfLines={1}>
+            {plant.conservation_status || "Plant"}
+          </Text>
+          <Text style={[styles.cardTitle, uri ? styles.onPhoto : null]} numberOfLines={3}>
+            {plantTitle(plant)}
+          </Text>
+          <Text style={[styles.cardMeta, uri ? styles.onPhotoMuted : null]} numberOfLines={2}>
+            {subtitle || "No common name"}
+          </Text>
+        </>
+      )}
     </Pressable>
   );
 }
@@ -232,6 +246,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
+  loginPressed: { backgroundColor: colors.forestDark },
   loginText: { color: "#fffdf8", fontWeight: "700" },
   list: { padding: 16, paddingBottom: 32, gap: 12 },
   gridRow: { gap: 12, alignItems: "flex-start" },
@@ -269,6 +284,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   searchButtonText: { color: "#fffdf8", fontWeight: "700" },
+  searchButtonPressed: { backgroundColor: colors.forestDark },
   scanButton: {
     marginTop: 4,
     minHeight: 46,
@@ -279,6 +295,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   scanButtonText: { color: colors.forest, fontWeight: "700", fontSize: 16 },
+  scanButtonPressed: { backgroundColor: colors.okBg },
   error: { color: colors.danger, fontSize: 14 },
   empty: {
     backgroundColor: "#fffcf8",
@@ -295,6 +312,8 @@ const styles = StyleSheet.create({
   },
   tilePhoto: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0 },
   tileScrim: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0, backgroundColor: "rgba(14, 36, 28, 0.45)" },
+  tilePressed: { backgroundColor: "#1e4d38" },
+  tilePress: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0, backgroundColor: "rgba(247, 251, 248, 0.18)" },
   cardStatus: { color: "#d7e6da", fontSize: 12, fontWeight: "600" },
   cardTitle: { color: "#f7fbf8", fontSize: 22, fontWeight: "700", lineHeight: 26 },
   cardMeta: { color: "rgba(247, 251, 248, 0.82)", fontSize: 13, lineHeight: 18 },

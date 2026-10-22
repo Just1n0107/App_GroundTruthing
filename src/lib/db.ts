@@ -42,6 +42,8 @@ async function database() {
           remote_uuid TEXT,
           species_id TEXT,
           species_label TEXT,
+          plant_name TEXT,
+          life_stage TEXT,
           height_m TEXT,
           trunk_diameter_cm TEXT,
           latitude TEXT,
@@ -66,6 +68,8 @@ async function database() {
           species_id TEXT,
           species_name TEXT,
           common_name TEXT,
+          plant_name TEXT,
+          life_stage TEXT,
           status TEXT,
           location_name TEXT,
           latitude REAL,
@@ -84,6 +88,18 @@ async function database() {
         CREATE INDEX IF NOT EXISTS records_user ON records(user_id);
         CREATE INDEX IF NOT EXISTS records_qr ON records(qr_code);
       `);
+      for (const statement of [
+        "ALTER TABLE drafts ADD COLUMN plant_name TEXT",
+        "ALTER TABLE drafts ADD COLUMN life_stage TEXT",
+        "ALTER TABLE records ADD COLUMN plant_name TEXT",
+        "ALTER TABLE records ADD COLUMN life_stage TEXT",
+      ]) {
+        try {
+          await db.execAsync(statement);
+        } catch {
+          // This phone already has the column.
+        }
+      }
       return db;
     });
   }
@@ -144,19 +160,34 @@ export async function getSpecies(uuid: string) {
   return row ? toSpecies(row) : null;
 }
 
+type DraftRow = Omit<Draft, "plant_name" | "life_stage"> & {
+  plant_name: string | null;
+  life_stage: string | null;
+};
+
+function toDraft(row: DraftRow): Draft {
+  return {
+    ...row,
+    plant_name: row.plant_name ?? "",
+    life_stage: row.life_stage ?? "",
+  };
+}
+
 export async function saveDraft(draft: Draft) {
   const db = await database();
   await db.runAsync(
     `INSERT INTO drafts (
-      local_id, user_id, remote_uuid, species_id, species_label, height_m, trunk_diameter_cm,
+      local_id, user_id, remote_uuid, species_id, species_label, plant_name, life_stage, height_m, trunk_diameter_cm,
       latitude, longitude, location_name, leaf_traits, flower_fruit_traits, health_status,
       other_traits, photo_uri, photo_caption, photo_remote_url, status, saved_at, sync_error
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(local_id) DO UPDATE SET
       user_id = excluded.user_id,
       remote_uuid = excluded.remote_uuid,
       species_id = excluded.species_id,
       species_label = excluded.species_label,
+      plant_name = excluded.plant_name,
+      life_stage = excluded.life_stage,
       height_m = excluded.height_m,
       trunk_diameter_cm = excluded.trunk_diameter_cm,
       latitude = excluded.latitude,
@@ -177,6 +208,8 @@ export async function saveDraft(draft: Draft) {
     draft.remote_uuid,
     draft.species_id,
     draft.species_label,
+    draft.plant_name,
+    draft.life_stage,
     draft.height_m,
     draft.trunk_diameter_cm,
     draft.latitude,
@@ -197,15 +230,17 @@ export async function saveDraft(draft: Draft) {
 
 export async function listDrafts(userId: string) {
   const db = await database();
-  return db.getAllAsync<Draft>(
+  const rows = await db.getAllAsync<DraftRow>(
     "SELECT * FROM drafts WHERE user_id = ? ORDER BY saved_at DESC",
     userId,
   );
+  return rows.map(toDraft);
 }
 
 export async function getDraft(localId: string) {
   const db = await database();
-  return db.getFirstAsync<Draft>("SELECT * FROM drafts WHERE local_id = ?", localId);
+  const row = await db.getFirstAsync<DraftRow>("SELECT * FROM drafts WHERE local_id = ?", localId);
+  return row ? toDraft(row) : null;
 }
 
 export async function deleteDraft(localId: string) {
@@ -229,16 +264,18 @@ export async function replaceRecords(userId: string, records: CachedRecord[]) {
     for (const item of records) {
       await db.runAsync(
         `INSERT INTO records (
-          uuid, user_id, code, species_id, species_name, common_name, status, location_name,
+          uuid, user_id, code, species_id, species_name, common_name, plant_name, life_stage, status, location_name,
           latitude, longitude, height_m, trunk_diameter_cm, leaf_traits, flower_fruit_traits,
           health_status, other_traits, qr_code, review_note, recorded_at, photos_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         item.uuid,
         item.user_id,
         item.code,
         item.species_id,
         item.species_name,
         item.common_name,
+        item.plant_name,
+        item.life_stage,
         item.status,
         item.location_name,
         item.latitude,

@@ -82,7 +82,10 @@ export function Button({
         styles.button,
         tone === "secondary" && styles.buttonSecondary,
         tone === "danger" && styles.buttonDanger,
-        (pressed || disabled) && styles.pressed,
+        pressed && !disabled && tone === "secondary" && styles.buttonSecondaryPressed,
+        pressed && !disabled && tone === "danger" && styles.buttonDangerPressed,
+        pressed && !disabled && tone === "primary" && styles.buttonPressed,
+        disabled && styles.disabled,
       ]}
     >
       <Text style={[styles.buttonText, tone === "secondary" && styles.buttonTextSecondary]}>{label}</Text>
@@ -99,15 +102,17 @@ export function Field({
   placeholder,
   secure = false,
   autoCapitalize = "sentences",
+  editable = true,
 }: {
   label: string;
   value: string;
-  onChangeText: (value: string) => void;
+  onChangeText?: (value: string) => void;
   multiline?: boolean;
   keyboardType?: TextInputProps["keyboardType"];
   placeholder?: string;
   secure?: boolean;
   autoCapitalize?: TextInputProps["autoCapitalize"];
+  editable?: boolean;
 }) {
   return (
     <View style={styles.field}>
@@ -115,6 +120,7 @@ export function Field({
       <TextInput
         value={value}
         onChangeText={onChangeText}
+        editable={editable}
         multiline={multiline}
         keyboardType={keyboardType}
         placeholder={placeholder}
@@ -122,7 +128,7 @@ export function Field({
         secureTextEntry={secure}
         autoCapitalize={autoCapitalize}
         autoCorrect={multiline}
-        style={[styles.input, multiline && styles.area]}
+        style={[styles.input, !editable && styles.inputLocked, multiline && styles.area]}
       />
     </View>
   );
@@ -176,7 +182,10 @@ const styles = StyleSheet.create({
   },
   buttonSecondary: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   buttonDanger: { backgroundColor: colors.danger },
-  pressed: { opacity: 0.7 },
+  buttonPressed: { backgroundColor: colors.forestDark },
+  buttonSecondaryPressed: { backgroundColor: colors.okBg, borderColor: colors.forest },
+  buttonDangerPressed: { backgroundColor: "#732424" },
+  disabled: { opacity: 0.5 },
   buttonText: { color: "#fffdf8", fontWeight: "700", fontSize: 16 },
   buttonTextSecondary: { color: colors.forest },
   field: { gap: 6 },
@@ -191,6 +200,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 16,
   },
+  inputLocked: { backgroundColor: colors.field, color: colors.ink },
   area: { minHeight: 96, textAlignVertical: "top", paddingVertical: 10 },
   fact: { gap: 2 },
   factValue: { color: colors.ink, fontSize: 16, lineHeight: 22 },

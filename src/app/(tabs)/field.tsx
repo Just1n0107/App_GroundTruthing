@@ -76,7 +76,11 @@ export default function FieldHome() {
         <Text style={styles.status}>{statusLine}</Text>
 
         {botanist ? (
-          <Pressable accessibilityRole="button" style={styles.primary} onPress={() => router.push("/records/new")}>
+          <Pressable
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.primary, pressed && styles.primaryPressed]}
+            onPress={() => router.push("/records/new")}
+          >
             <Text style={styles.primaryText}>{t.registerPlant}</Text>
           </Pressable>
         ) : (
@@ -97,14 +101,32 @@ export default function FieldHome() {
         />
 
         <View style={styles.tiles}>
-          <Pressable accessibilityRole="button" style={styles.tile} onPress={() => router.push("/scan")}>
+          <Pressable
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.tile, pressed && styles.tilePressed]}
+            onPress={() => router.push("/scan")}
+          >
             <Text style={styles.tileTitle}>{t.scanTag}</Text>
             <Text style={styles.tileHint}>{t.scanHint}</Text>
           </Pressable>
-          <Pressable accessibilityRole="button" style={styles.tile} onPress={() => router.push("/species")}>
+          <Pressable
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.tile, pressed && styles.tilePressed]}
+            onPress={() => router.push("/species")}
+          >
             <Text style={styles.tileTitle}>{t.species}</Text>
             <Text style={styles.tileHint}>{t.speciesHint}</Text>
           </Pressable>
+          {(botanist || profile.role === "conservation_officer") && (
+            <Pressable
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.tile, styles.wideTile, pressed && styles.tilePressed]}
+              onPress={() => router.push("/plants" as "/plants/index")}
+            >
+              <Text style={styles.tileTitle}>{t.viewPlants}</Text>
+              <Text style={styles.tileHint}>{t.viewPlantsHint}</Text>
+            </Pressable>
+          )}
         </View>
 
         {botanist && (
@@ -112,12 +134,16 @@ export default function FieldHome() {
             <View style={styles.sheetHead}>
               <Text style={styles.sheetTitle}>{pending === 0 ? t.nothingToUpload : `${pending} ${t.toUpload}`}</Text>
               <Pressable accessibilityRole="button" disabled={syncing} onPress={syncNow}>
-                <Text style={[styles.link, syncing && styles.linkDisabled]}>{syncing ? t.uploading : t.upload}</Text>
+                {({ pressed }) => (
+                  <Text style={[styles.link, syncing && styles.linkDisabled, pressed && styles.linkPressed]}>
+                    {syncing ? t.uploading : t.upload}
+                  </Text>
+                )}
               </Pressable>
             </View>
             {drafts.map((draft) => (
               <Text key={draft.local_id} style={styles.line}>
-                {draft.species_label || "Unidentified"}
+                {draft.plant_name || draft.species_label || "Unidentified"}
                 {draft.location_name ? ` · ${draft.location_name}` : ""}
               </Text>
             ))}
@@ -128,10 +154,14 @@ export default function FieldHome() {
           <View style={styles.sheet}>
             <Text style={styles.sheetTitle}>{t.recent}</Text>
             {records.map((record) => (
-              <Pressable key={record.uuid} style={styles.record} onPress={() => router.push(`/records/${record.uuid}`)}>
+              <Pressable
+                key={record.uuid}
+                style={({ pressed }) => [styles.record, pressed && styles.recordPressed]}
+                onPress={() => router.push(`/records/${record.uuid}`)}
+              >
                 <Text style={styles.line}>
                   {record.code ? `${record.code} · ` : ""}
-                  {record.species_name || "Unidentified"}
+                  {record.plant_name || record.species_name || "Unidentified"}
                 </Text>
                 <Badge status={record.status} />
               </Pressable>
@@ -171,10 +201,12 @@ function makeStyles(colors: Palette) {
     alignItems: "center",
     justifyContent: "center",
   },
+  primaryPressed: { backgroundColor: colors.forestDark },
   primaryText: { color: "#f7fbf8", fontSize: 16, fontWeight: "700" },
-  tiles: { flexDirection: "row", gap: 10 },
+  tiles: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   tile: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: "46%",
     backgroundColor: colors.sheet,
     borderRadius: 18,
     paddingHorizontal: 14,
@@ -183,6 +215,8 @@ function makeStyles(colors: Palette) {
   },
   tileTitle: { color: colors.ink, fontSize: 16, fontWeight: "700" },
   tileHint: { color: colors.muted, fontSize: 13 },
+  wideTile: { flexBasis: "100%" },
+  tilePressed: { backgroundColor: colors.okBg },
   sheet: {
     backgroundColor: colors.sheet,
     borderRadius: 18,
@@ -192,8 +226,10 @@ function makeStyles(colors: Palette) {
   sheetHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
   sheetTitle: { color: colors.ink, fontSize: 16, fontWeight: "700" },
   link: { color: colors.forest, fontSize: 15, fontWeight: "700" },
+  linkPressed: { color: colors.leaf },
   linkDisabled: { opacity: 0.5 },
   line: { color: colors.ink, fontSize: 15 },
-  record: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, paddingVertical: 4 },
+  record: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, paddingVertical: 4, borderRadius: 12 },
+  recordPressed: { backgroundColor: colors.field },
 });
 }

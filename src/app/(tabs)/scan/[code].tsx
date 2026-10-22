@@ -4,7 +4,7 @@ import { StyleSheet, Text } from "react-native";
 import { PhotoGallery } from "@/components/PhotoGallery";
 import { Button, Fact, Loading, Notice, Screen } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
-import { firstParam } from "@/lib/plant";
+import { choiceLabel, firstParam, healthChoices, recordName } from "@/lib/plant";
 import { lookupTag, type TagHit } from "@/lib/sync";
 import { colors } from "@/theme";
 
@@ -46,10 +46,10 @@ export default function TaggedPlantScreen() {
     const record = hit.record;
     return (
       <Screen>
-        <Text style={styles.name}>{record.species_name || "Unidentified plant"}</Text>
+        <Text style={styles.name}>{recordName(record.plant_name, record.species_name)}</Text>
         <Fact label="Tag" value={code} />
         <Fact label="Place" value={record.location_name} />
-        <Fact label="Health" value={record.health_status} />
+        <Fact label="Health" value={choiceLabel(record.health_status, healthChoices)} />
         <Fact label="GPS" value={record.latitude != null ? `${record.latitude}, ${record.longitude}` : null} />
         {record.user_id ? <Button label="Open field record" onPress={() => router.push(`/records/${record.uuid}`)} /> : null}
       </Screen>

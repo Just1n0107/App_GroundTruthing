@@ -7,6 +7,8 @@ export async function resubmitRecord(userId: string, recordId: string, input: Fi
   const { error } = await supabase
     .from("plant_records")
     .update({
+      plant_name: textOrNull(input.plant_name),
+      life_stage: textOrNull(input.life_stage),
       species_id: input.species_id,
       height_m: numberOrNull(input.height_m),
       trunk_diameter_cm: numberOrNull(input.trunk_diameter_cm),

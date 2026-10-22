@@ -36,6 +36,8 @@ export type Draft = {
   remote_uuid: string | null;
   species_id: string | null;
   species_label: string;
+  plant_name: string;
+  life_stage: string;
   height_m: string;
   trunk_diameter_cm: string;
   latitude: string;
@@ -60,6 +62,8 @@ export type CachedRecord = {
   species_id: string | null;
   species_name: string | null;
   common_name: string | null;
+  plant_name: string | null;
+  life_stage: string | null;
   status: string;
   location_name: string | null;
   latitude: number | null;
@@ -94,6 +98,8 @@ export type PublicPlant = {
 export type FieldInput = {
   species_id: string | null;
   species_label: string;
+  plant_name: string;
+  life_stage: string;
   height_m: string;
   trunk_diameter_cm: string;
   latitude: string;

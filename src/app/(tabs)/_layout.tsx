@@ -23,6 +23,7 @@ export default function TabLayout() {
       <Tabs.Screen name="species" options={{ title: t.speciesTab }} />
       <Tabs.Screen name="scan" options={{ title: t.scanTab }} />
       <Tabs.Screen name="events" options={{ href: null }} />
+      <Tabs.Screen name="plants" options={{ href: null }} />
       <Tabs.Screen name="settings" options={{ href: null }} />
     </Tabs>
   );

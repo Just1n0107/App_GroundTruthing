@@ -5,7 +5,7 @@ import { Badge, Muted, Notice } from "@/components/ui";
 import { listDrafts, listRecords } from "@/lib/db";
 import { useAuth } from "@/lib/auth";
 import { usePreferences } from "@/lib/preferences";
-import { formatWhen } from "@/lib/plant";
+import { formatWhen, recordName } from "@/lib/plant";
 import { colors } from "@/theme";
 import type { CachedRecord, Draft } from "@/types";
 
@@ -19,7 +19,7 @@ const sorts = [
 type SortKey = (typeof sorts)[number]["key"];
 
 function recordText(item: CachedRecord) {
-  return `${item.code ?? ""} ${item.species_name ?? ""} ${item.common_name ?? ""} ${item.location_name ?? ""} ${item.status}`.toLowerCase();
+  return `${item.code ?? ""} ${item.plant_name ?? ""} ${item.species_name ?? ""} ${item.common_name ?? ""} ${item.location_name ?? ""} ${item.status}`.toLowerCase();
 }
 
 export default function RecordsScreen() {
@@ -52,7 +52,7 @@ export default function RecordsScreen() {
     const needle = query.trim().toLowerCase();
     const filtered = needle ? records.filter((item) => recordText(item).includes(needle)) : records;
     return [...filtered].sort((a, b) => {
-      if (sort === "name") return (a.species_name ?? "Unidentified").localeCompare(b.species_name ?? "Unidentified");
+      if (sort === "name") return recordName(a.plant_name, a.species_name).localeCompare(recordName(b.plant_name, b.species_name));
       if (sort === "status") return a.status.localeCompare(b.status) || (b.recorded_at ?? "").localeCompare(a.recorded_at ?? "");
       const recent = (b.recorded_at ?? "").localeCompare(a.recorded_at ?? "");
       return sort === "oldest" ? -recent : recent;
@@ -114,7 +114,7 @@ export default function RecordsScreen() {
               <Text style={styles.heading}>{t.stillOnPhone}</Text>
               {drafts.map((draft) => (
                 <Pressable key={draft.local_id} style={styles.row} onPress={() => router.push(`/records/draft/${draft.local_id}`)}>
-                  <Text style={styles.name}>{draft.species_label || "Unidentified"}</Text>
+                  <Text style={styles.name}>{recordName(draft.plant_name, draft.species_label)}</Text>
                   <Muted>{draft.sync_error || draft.location_name || t.notUploaded}</Muted>
                 </Pressable>
               ))}
@@ -135,7 +135,7 @@ export default function RecordsScreen() {
         <Pressable style={styles.row} onPress={() => router.push(`/records/${item.uuid}`)}>
           <Text style={styles.name}>
             {item.code ? `${item.code} · ` : ""}
-            {item.species_name || "Unidentified"}
+            {recordName(item.plant_name, item.species_name)}
           </Text>
           <Muted>
             {item.location_name || "No place name"}

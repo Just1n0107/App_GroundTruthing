@@ -7,7 +7,7 @@ import { Badge, Button, Fact, Notice, Screen } from "@/components/ui";
 import { RecordForm } from "@/components/RecordForm";
 import { getRecord } from "@/lib/db";
 import { useAuth } from "@/lib/auth";
-import { firstParam, formatWhen, plantQrValue, statusLabel } from "@/lib/plant";
+import { choiceLabel, firstParam, flowerChoices, formatWhen, healthChoices, leafChoices, lifeStageChoices, plantQrValue, recordName } from "@/lib/plant";
 import { generateRecordQr, resubmitRecord } from "@/lib/remote";
 import { refreshReferenceData } from "@/lib/sync";
 import { siteUrl } from "@/lib/supabase";
@@ -54,11 +54,16 @@ export default function RecordDetailScreen() {
 
   return (
     <Screen>
-      <Text style={styles.name}>{record.species_name || "Unidentified plant"}</Text>
-      {record.common_name ? <Text style={styles.meta}>{record.common_name}</Text> : null}
-      <Badge status={record.status} />
-      {record.code ? <Fact label="Record" value={record.code} /> : null}
-      {record.recorded_at ? <Fact label="Recorded" value={formatWhen(record.recorded_at)} /> : null}
+      <Text style={styles.name}>{recordName(record.plant_name, record.species_name)}</Text>
+      {record.plant_name && record.species_name ? <Text style={styles.species}>{record.species_name}</Text> : null}
+      {record.common_name ? <Text style={styles.common}>{record.common_name}</Text> : null}
+      {editable ? (
+        <>
+          <Badge status={record.status} />
+          {record.code ? <Fact label="Record" value={record.code} /> : null}
+          {record.recorded_at ? <Fact label="Recorded" value={formatWhen(record.recorded_at)} /> : null}
+        </>
+      ) : null}
       {record.review_note && <Notice tone="warn">Officer note: {record.review_note}</Notice>}
       {message && <Notice tone="danger">{message}</Notice>}
 
@@ -70,6 +75,8 @@ export default function RecordDetailScreen() {
           initial={{
             species_id: record.species_id,
             species_label: record.species_name ?? "",
+            plant_name: record.plant_name ?? "",
+            life_stage: record.life_stage ?? "",
             height_m: record.height_m?.toString() ?? "",
             trunk_diameter_cm: record.trunk_diameter_cm?.toString() ?? "",
             latitude: record.latitude?.toString() ?? "",
@@ -98,32 +105,8 @@ export default function RecordDetailScreen() {
           }}
         />
       ) : (
-        <View style={styles.facts}>
-          <Fact label="Place" value={record.location_name} />
-          <Fact label="GPS" value={record.latitude != null ? `${record.latitude}, ${record.longitude}` : null} />
-          <Fact label="Height (m)" value={record.height_m} />
-          <Fact label="Trunk diameter (cm)" value={record.trunk_diameter_cm} />
-          <Fact label="Leaves" value={record.leaf_traits} />
-          <Fact label="Flower or fruit" value={record.flower_fruit_traits} />
-          <Fact label="Health" value={record.health_status} />
-          <Fact label="Other" value={record.other_traits} />
-          <Fact label="Status" value={statusLabel(record.status)} />
-        </View>
+        <SubmittedRecord record={record} />
       )}
-
-      {record.latitude != null && record.longitude != null && (
-        <Button
-          label="Open location"
-          tone="secondary"
-          onPress={() =>
-            Linking.openURL(
-              `https://www.openstreetmap.org/?mlat=${record.latitude}&mlon=${record.longitude}#map=17/${record.latitude}/${record.longitude}`,
-            )
-          }
-        />
-      )}
-
-      <PhotoGallery photos={record.photos} />
 
       {record.status === "approved" && !record.qr_code && profile.role === "botanist" && (
         <Button
@@ -169,9 +152,114 @@ export default function RecordDetailScreen() {
   );
 }
 
+function SubmittedRecord({ record }: { record: CachedRecord }) {
+  const lifeStage = choiceLabel(record.life_stage, lifeStageChoices);
+  const health = choiceLabel(record.health_status, healthChoices);
+  const leaves = choiceLabel(record.leaf_traits, leafChoices);
+  const flower = choiceLabel(record.flower_fruit_traits, flowerChoices);
+  const gps = record.latitude != null && record.longitude != null ? `${record.latitude}, ${record.longitude}` : null;
+
+  return (
+    <View style={styles.summary}>
+      {record.photos.length > 0 ? (
+        <PhotoGallery photos={record.photos} height={240} radius={24} />
+      ) : (
+        <View style={styles.heroEmpty}>
+          <Text style={styles.heroEmptyText}>No photograph yet</Text>
+        </View>
+      )}
+      <View style={styles.pills}>
+        <Badge status={record.status} />
+        {lifeStage ? <Text style={styles.pill}>{lifeStage}</Text> : null}
+        {health ? <Text style={styles.pill}>{health}</Text> : null}
+      </View>
+      <View style={styles.card}>
+        <Text style={styles.section}>Record</Text>
+        <Line label="Code" value={record.code} />
+        <Line label="Recorded" value={record.recorded_at ? formatWhen(record.recorded_at) : null} />
+      </View>
+      <View style={styles.card}>
+        <Text style={styles.section}>Place</Text>
+        <Line label="Name" value={record.location_name} />
+        <Line label="GPS" value={gps} />
+        {gps ? (
+          <Button
+            label="Open location"
+            tone="secondary"
+            onPress={() =>
+              Linking.openURL(
+                `https://www.openstreetmap.org/?mlat=${record.latitude}&mlon=${record.longitude}#map=17/${record.latitude}/${record.longitude}`,
+              )
+            }
+          />
+        ) : null}
+      </View>
+      <View style={styles.metrics}>
+        <Metric label="Height" value={record.height_m != null ? `${record.height_m} m` : "—"} />
+        <Metric label="Trunk" value={record.trunk_diameter_cm != null ? `${record.trunk_diameter_cm} cm` : "—"} />
+      </View>
+      <View style={styles.card}>
+        <Text style={styles.section}>Traits</Text>
+        <Line label="Leaves" value={leaves} />
+        <Line label="Flower or fruit" value={flower} />
+        <Line label="Other" value={record.other_traits} />
+      </View>
+    </View>
+  );
+}
+
+function Line({ label, value }: { label: string; value: string | null | undefined }) {
+  if (!value) return null;
+  return (
+    <View style={styles.line}>
+      <Text style={styles.lineLabel}>{label}</Text>
+      <Text style={styles.lineValue}>{value}</Text>
+    </View>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.metric}>
+      <Text style={styles.metricValue}>{value}</Text>
+      <Text style={styles.metricLabel}>{label}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  name: { fontSize: 28, fontWeight: "700", color: colors.ink },
+  name: { fontSize: 32, fontWeight: "700", color: colors.ink },
+  species: { color: colors.muted, fontSize: 16, fontStyle: "italic" },
+  common: { color: colors.ink, fontSize: 16 },
   meta: { color: colors.muted, fontSize: 14 },
-  facts: { gap: 10 },
-  qr: { alignItems: "flex-start", gap: 8, backgroundColor: "#fff", padding: 12, borderRadius: 16 },
+  summary: { gap: 12 },
+  heroEmpty: {
+    height: 160,
+    borderRadius: 24,
+    backgroundColor: "#d7e6da",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heroEmptyText: { color: colors.forest, fontWeight: "700" },
+  pills: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  pill: {
+    backgroundColor: "#fff",
+    color: colors.ink,
+    overflow: "hidden",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  card: { backgroundColor: "#fffcf8", borderRadius: 24, padding: 16, gap: 12 },
+  section: { color: colors.ink, fontSize: 18, fontWeight: "700" },
+  line: { gap: 2, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#e7eee6" },
+  lineLabel: { color: "#6b726c", fontSize: 13 },
+  lineValue: { color: colors.ink, fontSize: 16 },
+  metrics: { flexDirection: "row", gap: 10 },
+  metric: { flex: 1, backgroundColor: "#143528", borderRadius: 24, padding: 16, gap: 4 },
+  metricValue: { color: "#f7fbf8", fontSize: 22, fontWeight: "700" },
+  metricLabel: { color: "#c9e6d4", fontSize: 13, fontWeight: "700" },
+  qr: { alignItems: "flex-start", gap: 8, backgroundColor: "#fff", padding: 16, borderRadius: 24 },
 });

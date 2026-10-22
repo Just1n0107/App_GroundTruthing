@@ -49,8 +49,52 @@ export function invalidNumber(value: string) {
   return !Number.isFinite(Number(text));
 }
 
+export type ChoiceOption = { value: string; label: string };
+
+export const lifeStageChoices: ChoiceOption[] = [
+  { value: "seedling", label: "Seedling" },
+  { value: "sapling", label: "Sapling" },
+  { value: "mature", label: "Mature" },
+  { value: "flowering", label: "Flowering" },
+  { value: "fruiting", label: "Fruiting" },
+];
+
+export const healthChoices: ChoiceOption[] = [
+  { value: "healthy", label: "Healthy" },
+  { value: "fair", label: "Fair" },
+  { value: "poor", label: "Poor" },
+  { value: "damaged", label: "Damaged" },
+  { value: "diseased", label: "Diseased" },
+  { value: "dead", label: "Dead" },
+  { value: "unknown", label: "Not sure" },
+];
+
+export const leafChoices: ChoiceOption[] = [
+  { value: "broad", label: "Broad leaves" },
+  { value: "narrow", label: "Narrow leaves" },
+  { value: "compound", label: "Compound leaves" },
+  { value: "not_visible", label: "Leaves not visible" },
+];
+
+export const flowerChoices: ChoiceOption[] = [
+  { value: "none", label: "None" },
+  { value: "flowers", label: "Flowers" },
+  { value: "fruit", label: "Fruit" },
+  { value: "both", label: "Flowers and fruit" },
+];
+
+export function choiceLabel(value: string | null | undefined, options: ChoiceOption[]) {
+  if (!value) return null;
+  return options.find((option) => option.value === value)?.label ?? value;
+}
+
+export function recordName(plantName: string | null | undefined, speciesName: string | null | undefined) {
+  return plantName?.trim() || speciesName?.trim() || "Unidentified";
+}
+
 export function fieldProblems(input: FieldInput) {
   const problems: string[] = [];
+  if (!textOrNull(input.plant_name)) problems.push("Enter a plant name.");
   if (invalidNumber(input.height_m)) problems.push("Height must be a number.");
   if (invalidNumber(input.trunk_diameter_cm)) problems.push("Trunk diameter must be a number.");
   if (invalidNumber(input.latitude)) problems.push("Latitude must be a number.");
